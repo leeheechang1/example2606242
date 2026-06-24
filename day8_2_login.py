@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -22,6 +23,15 @@ app.add_middleware(
 
 
 
+USERID = 'user'
+PASSWORD = '1234'
+
+
+class Login(BaseModel):
+    userid: str
+    password: str
+
+
 templates = Jinja2Templates(directory="templates")
 app.mount('/static', StaticFiles(directory='static'), name='static')
 
@@ -39,12 +49,10 @@ async def login_page(request: Request):
     return templates.TemplateResponse(request, 'login.html')
 
 
-@app.post("/login/", response_class=HTMLResponse)
-async def login(request: Request, userid: str = Form(), password: str = Form()):
-    if userid != 'user':
-        result = '로그인 실패'
-    elif password != '1234':
-        result = '비밀번호가 다릅니다'
-    else:
-        result = '로그인 성공'
-    return templates.TemplateResponse(request, 'login.html', {'result': result})
+@app.post("/login/")
+async def login(login: Login):
+    if login.userid != USERID:
+        return {'message': '사용자 아이디가 다릅니다'}
+    if login.password != PASSWORD:
+        return {'message': '비밀번호가 다릅니다'}
+    return {'message': '로그인 성공'}
