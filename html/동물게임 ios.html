@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ko" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>동물 퀴즈 게임</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg1:#f0e6ff;--bg2:#ffe6f0;
+  --card:#fff;--text:#3a2d4f;--sub:#9b8fb0;
+  --green:#4cd964;--green-bg:#e8fbe8;--green-border:#b6f0b6;
+  --red:#ff6b6b;--red-bg:#ffe8e8;--red-border:#ffb6b6;
+  --accent:#a78bfa;--accent2:#f472b6;
+  --radius:20px;
+  --font:-apple-system,'Segoe UI','Noto Sans KR',sans-serif;
+}
+html{font-size:16px}
+body{
+  font-family:var(--font);color:var(--text);
+  min-height:100vh;min-height:100dvh;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2));
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;-webkit-font-smoothing:antialiased;
+  user-select:none;-webkit-user-select:none;
+}
+.container{width:100%;max-width:420px}
+
+/* ── Screens ── */
+.screen{display:none;flex-direction:column;align-items:center;animation:fadeUp .4s ease}
+.screen.active{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* ── Start Screen ── */
+.start-emoji{font-size:5rem;margin-bottom:12px;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.start-title{font-size:1.8rem;font-weight:800;margin-bottom:4px}
+.start-sub{font-size:.9rem;color:var(--sub);margin-bottom:28px}
+.start-btn{
+  width:100%;padding:16px;border:none;border-radius:16px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:1.05rem;font-weight:700;font-family:var(--font);
+  cursor:pointer;box-shadow:0 4px 20px rgba(167,139,250,.35);
+  transition:transform .15s,box-shadow .15s;
+}
+.start-btn:active{transform:scale(.97);box-shadow:0 2px 10px rgba(167,139,250,.25)}
+
+/* ── Quiz Screen ── */
+.progress{width:100%;margin-bottom:16px}
+.progress-header{display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;color:var(--sub);margin-bottom:6px}
+.progress-track{width:100%;height:6px;border-radius:3px;background:rgba(167,139,250,.15);overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s ease}
+
+.q-card{
+  width:100%;background:var(--card);border-radius:var(--radius);
+  padding:28px 24px;text-align:center;margin-bottom:16px;
+  box-shadow:0 2px 12px rgba(0,0,0,.06),0 8px 32px rgba(167,139,250,.1);
+}
+.q-emoji{font-size:3.5rem;margin-bottom:12px}
+.q-label{font-size:.7rem;font-weight:700;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.q-text{font-size:1.1rem;font-weight:700;line-height:1.5}
+
+/* ── Choices ── */
+.choices{width:100%;display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.choice{
+  width:100%;padding:14px 18px;border-radius:14px;border:2px solid #ede8f5;
+  background:var(--card);font-size:.92rem;font-weight:600;font-family:var(--font);
+  color:var(--text);cursor:pointer;text-align:left;
+  display:flex;align-items:center;gap:10px;
+  transition:border-color .2s,background .2s,transform .1s;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.choice:hover:not(.disabled){border-color:var(--accent);transform:translateY(-1px)}
+.choice:active:not(.disabled){transform:scale(.98)}
+.choice .num{
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(167,139,250,.1);color:var(--accent);
+  font-size:.75rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.choice.correct{border-color:var(--green);background:var(--green-bg)}
+.choice.correct .num{background:var(--green);color:#fff}
+.choice.wrong{border-color:var(--red);background:var(--red-bg)}
+.choice.wrong .num{background:var(--red);color:#fff}
+.choice.disabled{cursor:default;opacity:.6}
+.choice.correct.disabled{opacity:1}
+
+/* ── Explanation ── */
+.explanation{
+  width:100%;background:var(--card);border-radius:var(--radius);
+  padding:20px;display:none;animation:fadeUp .35s ease;
+  box-shadow:0 2px 12px rgba(0,0,0,.06);
+}
+.explanation.show{display:block}
+.exp-header{display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:700;color:var(--accent);margin-bottom:6px}
+.exp-text{font-size:.88rem;line-height:1.6;color:var(--text)}
+
+.next-btn{
+  width:100%;padding:14px;border:none;border-radius:14px;margin-top:14px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:.95rem;font-weight:700;font-family:var(--font);
+  cursor:pointer;display:none;animation:fadeUp .3s ease;
+  box-shadow:0 4px 16px rgba(167,139,250,.3);
+  transition:transform .15s;
+}
+.next-btn.show{display:block}
+.next-btn:active{transform:scale(.97)}
+
+/* ── Result Screen ── */
+.result-card{
+  width:100%;background:var(--card);border-radius:var(--radius);
+  padding:36px 24px;text-align:center;
+  box-shadow:0 2px 12px rgba(0,0,0,.06),0 8px 32px rgba(167,139,250,.1);
+}
+.result-emoji{font-size:4.5rem;margin-bottom:12px}
+.result-title{font-size:1.5rem;font-weight:800;margin-bottom:4px}
+.result-score{font-size:3rem;font-weight:800;color:var(--accent);margin:12px 0}
+.result-score span{font-size:1.2rem;color:var(--sub);font-weight:600}
+.result-msg{font-size:.9rem;color:var(--sub);line-height:1.5;margin-bottom:24px}
+.result-stars{font-size:2rem;margin-bottom:20px;letter-spacing:4px}
+.retry-btn{
+  width:100%;padding:14px;border:none;border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:.95rem;font-weight:700;font-family:var(--font);
+  cursor:pointer;box-shadow:0 4px 16px rgba(167,139,250,.3);
+  transition:transform .15s;
+}
+.retry-btn:active{transform:scale(.97)}
+
+/* ── Confetti ── */
+.confetti-container{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:99}
+.confetti{
+  position:absolute;width:10px;height:10px;border-radius:2px;
+  top:-20px;animation:confettiFall 3s ease-in forwards;
+}
+@keyframes confettiFall{
+  0%{transform:translateY(0) rotate(0deg);opacity:1}
+  100%{transform:translateY(110vh) rotate(720deg);opacity:0}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Start -->
+  <div class="screen active" id="startScreen">
+    <div class="start-emoji">🦁</div>
+    <div class="start-title">동물 퀴즈</div>
+    <div class="start-sub">동물에 대해 얼마나 알고 있나요?<br>5개 문제를 풀어보세요!</div>
+    <button class="start-btn" onclick="startQuiz()">시작하기 🚀</button>
+  </div>
+
+  <!-- Quiz -->
+  <div class="screen" id="quizScreen">
+    <div class="progress">
+      <div class="progress-header">
+        <span id="qNum">문제 1 / 5</span>
+        <span id="scoreLabel">0점</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="bar"></div></div>
+    </div>
+    <div class="q-card">
+      <div class="q-emoji" id="qEmoji"></div>
+      <div class="q-label" id="qLabel"></div>
+      <div class="q-text" id="qText"></div>
+    </div>
+    <div class="choices" id="choices"></div>
+    <div class="explanation" id="explanation">
+      <div class="exp-header">💡 알고 있었나요?</div>
+      <div class="exp-text" id="expText"></div>
+    </div>
+    <button class="next-btn" id="nextBtn" onclick="nextQuestion()">다음 문제 →</button>
+  </div>
+
+  <!-- Result -->
+  <div class="screen" id="resultScreen">
+    <div class="result-card">
+      <div class="result-emoji" id="resultEmoji"></div>
+      <div class="result-title" id="resultTitle"></div>
+      <div class="result-score" id="resultScore"></div>
+      <div class="result-stars" id="resultStars"></div>
+      <div class="result-msg" id="resultMsg"></div>
+      <button class="retry-btn" onclick="resetQuiz()">다시 풀기 🔄</button>
+    </div>
+  </div>
+</div>
+
+<div class="confetti-container" id="confetti"></div>
+
+<script>
+const quizData=[
+  {
+    emoji:"🐋",
+    label:"문제 1",
+    question:"세상에서 가장 큰 동물은 무엇일까요?",
+    choices:["아프리카 코끼리","대왕고래(흰수염고래)","기린","공룡(브라키오사우루스)"],
+    answer:1,
+    explanation:"대왕고래(흰수염고래)는 길이 약 30m, 무게 약 150톤으로 지구 역사상 가장 큰 동물이에요! 심장만 해도 소형 자동차 크기랍니다. 🚗"
+  },
+  {
+    emoji:"🦒",
+    label:"문제 2",
+    question:"기린의 목뼈는 몇 개일까요?",
+    choices:["20개","14개","7개","뼈가 없어요"],
+    answer:2,
+    explanation:"놀랍게도 기린의 목뼈는 사람과 똑같이 7개예요! 다만, 뼈 하나의 길이가 약 25cm나 되어서 목이 아주 길답니다. 🦴"
+  },
+  {
+    emoji:"🐙",
+    label:"문제 3",
+    question:"문어의 심장은 몇 개일까요?",
+    choices:["1개","2개","3개","8개"],
+    answer:2,
+    explanation:"문어는 심장이 3개예요! 주심장 1개가 온몸에 피를 보내고, 아가미심장 2개가 아가미에 피를 보내 산소를 받아요. 💙"
+  },
+  {
+    emoji:"🐨",
+    label:"문제 4",
+    question:"하루에 가장 많이 자는 동물은 누구일까요?",
+    choices:["고양이","나무늘보","코알라","하마"],
+    answer:2,
+    explanation:"코알라는 하루에 무려 22시간이나 잔답니다! 유칼립투스 잎은 영양분이 적어서 에너지를 아끼려고 거의 하루 종일 잠을 자요. 😴"
+  },
+  {
+    emoji:"🦇",
+    label:"문제 5",
+    question:"세상에서 유일하게 날 수 있는 포유류는?",
+    choices:["날다람쥐","박쥐","슈가글라이더","날여우"],
+    answer:1,
+    explanation:"박쥐는 유일하게 스스로 날 수 있는 포유류예요! 날다람쥐나 슈가글라이더는 높은 곳에서 활공(글라이딩)하는 것이지 진짜 나는 게 아니랍니다. 🌙"
+  }
+];
+
+let current=0,score=0,answered=false;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startQuiz(){show('quizScreen');renderQ()}
+
+function renderQ(){
+  const q=quizData[current];
+  document.getElementById('qEmoji').textContent=q.emoji;
+  document.getElementById('qLabel').textContent=q.label;
+  document.getElementById('qText').textContent=q.question;
+  document.getElementById('qNum').textContent=`문제 ${current+1} / ${quizData.length}`;
+  document.getElementById('scoreLabel').textContent=`${score*20}점`;
+  document.getElementById('bar').style.width=`${((current)/quizData.length)*100}%`;
+
+  const box=document.getElementById('choices');
+  box.innerHTML='';
+  const labels=['A','B','C','D'];
+  q.choices.forEach((c,i)=>{
+    const btn=document.createElement('button');
+    btn.className='choice';
+    btn.innerHTML=`<span class="num">${labels[i]}</span><span>${c}</span>`;
+    btn.onclick=()=>selectAnswer(i);
+    box.appendChild(btn);
+  });
+
+  document.getElementById('explanation').classList.remove('show');
+  document.getElementById('nextBtn').classList.remove('show');
+  answered=false;
+}
+
+function selectAnswer(i){
+  if(answered)return;
+  answered=true;
+  const q=quizData[current];
+  const btns=document.querySelectorAll('.choice');
+
+  btns.forEach((b,j)=>{
+    b.classList.add('disabled');
+    if(j===q.answer)b.classList.add('correct');
+    if(j===i&&i!==q.answer)b.classList.add('wrong');
+  });
+
+  if(i===q.answer)score++;
+
+  document.getElementById('scoreLabel').textContent=`${score*20}점`;
+  document.getElementById('expText').textContent=q.explanation;
+  document.getElementById('explanation').classList.add('show');
+
+  const nb=document.getElementById('nextBtn');
+  nb.textContent=current<quizData.length-1?'다음 문제 →':'결과 보기 🎉';
+  nb.classList.add('show');
+}
+
+function nextQuestion(){
+  current++;
+  if(current>=quizData.length){showResult();return}
+  // re-trigger animation
+  const s=document.getElementById('quizScreen');
+  s.classList.remove('active');
+  requestAnimationFrame(()=>{s.classList.add('active');renderQ()});
+}
+
+function showResult(){
+  show('resultScreen');
+  const pct=score/quizData.length;
+  let emoji,title,msg,stars;
+
+  if(pct===1){
+    emoji='🏆';title='완벽해요!';
+    msg='모든 문제를 맞혔어요!\n동물 박사님이시네요! 👏';
+    stars='⭐⭐⭐⭐⭐';
+    spawnConfetti();
+  }else if(pct>=0.8){
+    emoji='🎉';title='대단해요!';
+    msg='거의 다 맞혔어요!\n동물에 대해 정말 잘 알고 있네요!';
+    stars='⭐⭐⭐⭐';
+    spawnConfetti();
+  }else if(pct>=0.6){
+    emoji='😊';title='잘했어요!';
+    msg='절반 이상 맞혔어요!\n조금만 더 공부하면 동물 박사!';
+    stars='⭐⭐⭐';
+  }else if(pct>=0.4){
+    emoji='🤔';title='아쉬워요!';
+    msg='틀린 문제를 다시 살펴보고\n다시 도전해 보세요!';
+    stars='⭐⭐';
+  }else{
+    emoji='💪';title='다시 도전!';
+    msg='괜찮아요! 한 번 더 풀면\n훨씬 잘할 수 있을 거예요!';
+    stars='⭐';
+  }
+
+  document.getElementById('resultEmoji').textContent=emoji;
+  document.getElementById('resultTitle').textContent=title;
+  document.getElementById('resultScore').innerHTML=`${score*20}<span> / 100점</span>`;
+  document.getElementById('resultStars').textContent=stars;
+  document.getElementById('resultMsg').textContent=msg;
+}
+
+function resetQuiz(){
+  current=0;score=0;answered=false;
+  document.getElementById('confetti').innerHTML='';
+  show('startScreen');
+}
+
+function spawnConfetti(){
+  const c=document.getElementById('confetti');
+  c.innerHTML='';
+  const colors=['#a78bfa','#f472b6','#fbbf24','#34d399','#60a5fa','#fb923c'];
+  for(let i=0;i<60;i++){
+    const el=document.createElement('div');
+    el.className='confetti';
+    el.style.left=Math.random()*100+'%';
+    el.style.background=colors[Math.floor(Math.random()*colors.length)];
+    el.style.animationDelay=Math.random()*2+'s';
+    el.style.width=(6+Math.random()*8)+'px';
+    el.style.height=(6+Math.random()*8)+'px';
+    el.style.borderRadius=Math.random()>.5?'50%':'2px';
+    c.appendChild(el);
+  }
+}
+
+document.addEventListener('keydown',e=>{
+  if(!answered){
+    const map={1:0,2:1,3:2,4:3};
+    if(e.key in map)selectAnswer(map[e.key]);
+  }else{
+    if(e.key===' '||e.key==='Enter'){e.preventDefault();nextQuestion()}
+  }
+});
+</script>
+</body>
+</html>
